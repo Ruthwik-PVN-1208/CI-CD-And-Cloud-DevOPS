@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'Java21'
+        maven 'Maven3'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // pulls code from your repo
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                // clean and build with Maven
+                bat 'mvn clean package -DskipTests'
+            }
+        }
+
+        stage('Archive') {
+            steps {
+                // save the jar file as an artifact
+                archiveArtifacts artifacts: 'target\\*.jar', fingerprint: true
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                // kill any old running java app and start the new one
+                bat '''
+                for /f "tokens=2" %%a in ('tasklist ^| findstr java.exe') do taskkill /PID %%a /F
+                start /B java -jar target\\*.jar > app.log 2>&1
+                '''
+            }
+        }
+    }
+}
